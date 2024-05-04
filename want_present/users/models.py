@@ -29,17 +29,20 @@ class Profile(AbstractUser):
         return f'{self.id_telegram} ({self.username})'
 
 
+User = get_user_model()
+
+
 class Subscribe(models.Model):
     """Модель подписок пользователей."""
 
     user = models.ForeignKey(
-        get_user_model(),
+        User,
         on_delete=models.CASCADE,
         verbose_name='Пользователь',
         related_name='subscriptions',
     )
     subscribe = models.ForeignKey(
-        get_user_model(),
+        User,
         on_delete=models.CASCADE,
         verbose_name='Кого поздравляет',
     )
