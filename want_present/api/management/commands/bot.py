@@ -21,7 +21,11 @@ def log_errors(func):
 @log_errors
 def say_hi(update, context):
     chat = update.effective_chat
-    context.bot.send_message(chat_id=chat.id, text='Привет, я Bot!')
+
+    context.bot.send_message(
+        chat_id=chat.id,
+        text='я простой Bot. Такой команды я ещё не выучил.'
+    )
 
     Profile.objects.get_or_create(
         id_telegram=chat.id,
@@ -29,15 +33,16 @@ def say_hi(update, context):
             'username': chat.first_name,
         }
     )
+
     if update.message.forward_from:
         if update.message.forward_from.is_bot:
-            text = TELEGRAM_TEXT['ID_IS_BOT']
+            text = TELEGRAM_TEXT['ID_BOT']
         else:
             user = Profile.objects.filter(
                 id_telegram=update.message.forward_from.id,
             )
             if not user.exists():
-                text = TELEGRAM_TEXT['ID_NOT_FOUND'].format(
+                text = TELEGRAM_TEXT['ID_NOT'].format(
                     update.message.forward_from.first_name
                 )
             else:
@@ -48,10 +53,24 @@ def say_hi(update, context):
             )
 
 
-def wake_up(update, context):
-    chat = update.effective_chat
+def start_bot(update, context):
     context.bot.send_message(
-        chat_id=chat.id, text='Спасибо, что включили меня',
+        chat_id=update.effective_chat.id,
+        text='Спасибо, что включили меня',
+    )
+
+
+def help_bot(update, context):
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=TELEGRAM_TEXT['HELP'].format(update.effective_chat.first_name),
+    )
+
+
+def day_bot(update, context):
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text='эм..',
     )
 
 
@@ -68,15 +87,16 @@ class Command(BaseCommand):
             token=os.getenv('TELEGTAM_TOKEN_BOT'),
             base_url=os.getenv('PROXY_URL')
         )
-        print(bot.get_me())
 
         updater = Updater(
             bot=bot,
             use_context=True,
         )
 
-        updater.dispatcher.add_handler(CommandHandler('start', wake_up))
-        updater.dispatcher.add_handler(MessageHandler(Filters.text, say_hi))
+        updater.dispatcher.add_handler(CommandHandler('start', start_bot))
+        updater.dispatcher.add_handler(CommandHandler('help', help_bot))
+        updater.dispatcher.add_handler(CommandHandler('new_holiday', day_bot))
+        # updater.dispatcher.add_handler(MessageHandler(Filters.text, say_hi))
 
         updater.start_polling()
         updater.idle()
