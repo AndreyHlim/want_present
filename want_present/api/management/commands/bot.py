@@ -8,6 +8,10 @@ from telegram.ext import (
 )
 from users.models import Profile
 from constants import TELEGRAM_TEXT
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 
 STEP1, STEP2, STEP3 = range(3)
@@ -80,13 +84,6 @@ def help_bot(update, context):
     )
 
 
-# def day_bot(update, context):
-#     context.bot.send_message(
-#         chat_id=update.effective_chat.id,
-#         text='эм..  тут должен быть диалог с сохранением праздника',
-#     )
-
-
 def cancel(update, context):
     context.bot.send_message(
         chat_id=update.effective_chat.id,
@@ -96,68 +93,50 @@ def cancel(update, context):
 
 
 def day_start(update, _):
-    # Список кнопок для ответа
-    # reply_keyboard = [['Boy', 'Girl', 'Other']]
-    # Создаем простую клавиатуру для ответа
-    # markup_key = ReplyKeyboardMarkup(reply_keyboard, one_time_keyboard=True)
-    # Начинаем разговор с вопроса
     update.message.reply_text(
         'Итак, приступим. Как желаете назвать праздник?',
-        # reply_markup=markup_key,
     )
-    # переходим к этапу `STEP1`, это значит, что ответ
-    # отправленного сообщения в виде кнопок будет список
-    # обработчиков, определенных в виде значения ключа `STEP1`
     return STEP1
 
 
-def step1(update, _):
-    # определяем пользователя
-    user = update.message.from_user
-    # Пишем в журнал пол пользователя
-    logger.info("Пол %s: %s", user.first_name, update.message.text)
-    # Следующее сообщение с удалением клавиатуры `ReplyKeyboardRemove`
-    update.message.reply_text(
-        'Хорошо. Какого числа ждёте праздника?',
-        # reply_markup=ReplyKeyboardRemove(),
+def step1(update, context):
+    logger.info(
+        "Праздник пользователя id={0}: {1}".format(
+            update.effective_chat.id, update.message.text
+        )
     )
-    # переходим к этапу `PHOTO`
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text='Хорошо. Какого числа ждёте праздника?',
+    )
     return STEP2
 
 
-# Обрабатываем фотографию пользователя
-def step2(update, _):
-    # определяем пользователя
-    user = update.message.from_user
-    # захватываем фото
-    # photo_file = update.message.photo[-1].get_file()
-    # скачиваем фото
-    # photo_file.download(f'{user.first_name}_photo.jpg')
-    # Пишем в журнал сведения о фото
-    logger.info("Фотография %s: %s", user.first_name,
-                f'{user.first_name}_photo.jpg')
-    # Отвечаем на сообщение с фото
-    update.message.reply_text(
-        'Великолепно! А какой месяц?'
+def step2(update, context):
+    logger.info(
+        "День празднования пользователя {0}: {1}".format(
+            update.effective_chat.id,
+            update.message.text
+        )
     )
-    # переходим к этапу `LOCATION`
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text='Великолепно! А какой месяц?',
+    )
     return STEP3
 
 
-# Обрабатываем местоположение пользователя
-def step3(update, _):
-    # определяем пользователя
-    user = update.message.from_user
-    # захватываем местоположение пользователя
-    # user_location = update.message.location
-    # Пишем в журнал сведения о местоположении
+def step3(update, context):
     logger.info(
-        "Местоположение %s.", user.first_name)
-    # Отвечаем на сообщение с местоположением
-    update.message.reply_text(
-        'ну вроде сохранили?...'
+        "Месяц празднования пользователя {0}: {1}".format(
+            update.effective_chat.id,
+            update.message.text
+        )
     )
-    # переходим к этапу `BIO`
+    context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text='Сохранили праздник!',
+    )
     return ConversationHandler.END
 
 
@@ -183,16 +162,12 @@ class Command(BaseCommand):
         conv_handler = ConversationHandler(
             entry_points=[CommandHandler('new_holiday', day_start)],
             states={
-                # GENDER
-                STEP1: [MessageHandler(Filters.text, step1),
-                        CommandHandler('cancel', cancel)],
-                # PHOTO
-                STEP2: [MessageHandler(Filters.text, step2),
-                        CommandHandler('cancel', cancel)],
-                # LOCATION
-                STEP3: [
-                    MessageHandler(Filters.text, step3),
-                    CommandHandler('cancel', cancel)],
+                STEP1: [CommandHandler('cancel', cancel),
+                        MessageHandler(Filters.text, step1)],
+                STEP2: [CommandHandler('cancel', cancel),
+                        MessageHandler(Filters.text, step2)],
+                STEP3: [CommandHandler('cancel', cancel),
+                        MessageHandler(Filters.text, step3)],
             },
             fallbacks=[CommandHandler('cancel', cancel)],
         )
@@ -200,7 +175,6 @@ class Command(BaseCommand):
         updater.dispatcher.add_handler(CommandHandler('start', start_bot))
         updater.dispatcher.add_handler(CommandHandler('help', help_bot))
         updater.dispatcher.add_handler(conv_handler)
-        # updater.dispatcher.add_handler(CommandHandler('new_holiday', day_bot)
         updater.dispatcher.add_handler(MessageHandler(Filters.text, say_hi))
 
         updater.start_polling(10)
