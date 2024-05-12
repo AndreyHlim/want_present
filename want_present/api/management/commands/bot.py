@@ -9,6 +9,9 @@ from telegram.ext import (
 from users.models import Profile
 from constants import TELEGRAM_TEXT
 from dotenv import load_dotenv
+from holidays.models import Holiday
+from api.serializers import HolidaySerializer
+from datetime import date
 
 
 load_dotenv()
@@ -100,6 +103,7 @@ def day_start(update, _):
 
 
 def step1(update, context):
+    context.user_data['name'] = update.message.text
     logger.info(
         "Праздник пользователя id={0}: {1}".format(
             update.effective_chat.id, update.message.text
@@ -113,6 +117,7 @@ def step1(update, context):
 
 
 def step2(update, context):
+    context.user_data['day_holiday'] = update.message.text
     logger.info(
         "День празднования пользователя {0}: {1}".format(
             update.effective_chat.id,
@@ -127,6 +132,7 @@ def step2(update, context):
 
 
 def step3(update, context):
+    context.user_data['month_holiday'] = update.message.text
     logger.info(
         "Месяц празднования пользователя {0}: {1}".format(
             update.effective_chat.id,
@@ -137,6 +143,30 @@ def step3(update, context):
         chat_id=update.effective_chat.id,
         text='Сохранили праздник!',
     )
+    context.user_data['user'] = Profile.objects.get(
+        id_telegram=update.effective_chat.id,
+    )
+    day = context.user_data['day_holiday']
+    day = day if int(day) >= 10 else '0'+str(day)
+
+    month = context.user_data['month_holiday']
+    month = month if int(month) >= 10 else '0'+str(month)
+
+    year = date.today().year
+    context.user_data['date'] = str(year) + '-' + str(month) + '-' + str(day)
+    del context.user_data['day_holiday']
+    del context.user_data['month_holiday']
+    Holiday.objects.create(
+        user=context.user_data['date'],
+        date=context.user_data['date'],
+        name=context.user_data['name'],
+    )
+    # serializers = HolidaySerializer(
+    #     data=context.user_data,
+    # )
+    # if serializers.is_valid():
+    #     serializers.save()
+    print(context.user_data)
     return ConversationHandler.END
 
 
