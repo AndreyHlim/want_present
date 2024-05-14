@@ -4,20 +4,20 @@ from telegram import Bot, ParseMode
 import os
 import logging
 from telegram.ext import (
-    Updater, Filters, MessageHandler, CommandHandler, ConversationHandler
+    Updater, Filters, MessageHandler, CommandHandler,
+    ConversationHandler, CallbackQueryHandler,
 )
 from users.models import Profile
 from constants import TELEGRAM_TEXT
 from dotenv import load_dotenv
 from holidays.models import Holiday
-from api.serializers import HolidaySerializer
-from datetime import date
+from api.telegram_calendar_keyboard import telegramcalendar
 
 
 load_dotenv()
 
 
-STEP1, STEP2, STEP3 = range(3)
+STEP1, STEP2 = range(2)
 
 
 # Включим ведение журнала
@@ -109,65 +109,59 @@ def step1(update, context):
             update.effective_chat.id, update.message.text
         )
     )
-    context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text='Хорошо. Какого числа ждёте праздника?',
+    update.message.reply_text(
+        "Укажите ближайшую дату этого праздника: ",
+        reply_markup=telegramcalendar.create_calendar()
     )
-    return STEP2
 
 
 def step2(update, context):
-    context.user_data['day_holiday'] = update.message.text
     logger.info(
-        "День празднования пользователя {0}: {1}".format(
-            update.effective_chat.id,
-            update.message.text
+        'Дата празднования: {0}'.format(
+            context.user_data['date'],
         )
     )
     context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text='Великолепно! А какой месяц?',
+        text=(
+            'Итак, мы сохранили такой праздник: \n\n'
+            'Название праздника: {0}\n'
+            'Ближайшая дата празднования: {1}'
+        ).format(
+            context.user_data['name'], context.user_data['date']
+        ),
     )
-    return STEP3
+    # update.message.reply_text(
+    #     reply_markup=ReplyKeyboardMarkup(
+    #         [['Всё верно', 'Нет, исправлю']], one_time_keyboard=True
+    #     )
+    # )
 
-
-def step3(update, context):
-    context.user_data['month_holiday'] = update.message.text
-    logger.info(
-        "Месяц празднования пользователя {0}: {1}".format(
-            update.effective_chat.id,
-            update.message.text
-        )
-    )
-    context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text='Сохранили праздник!',
-    )
     context.user_data['user'] = Profile.objects.get(
         id_telegram=update.effective_chat.id,
     )
-    day = context.user_data['day_holiday']
-    day = day if int(day) >= 10 else '0'+str(day)
 
-    month = context.user_data['month_holiday']
-    month = month if int(month) >= 10 else '0'+str(month)
-
-    year = date.today().year
-    context.user_data['date'] = str(year) + '-' + str(month) + '-' + str(day)
-    del context.user_data['day_holiday']
-    del context.user_data['month_holiday']
-    Holiday.objects.create(
-        user=context.user_data['date'],
-        date=context.user_data['date'],
-        name=context.user_data['name'],
-    )
     # serializers = HolidaySerializer(
     #     data=context.user_data,
     # )
     # if serializers.is_valid():
     #     serializers.save()
-    print(context.user_data)
+
+    Holiday.objects.create(
+        user=context.user_data['user'],
+        date=context.user_data['date'],
+        name=context.user_data['name'],
+    )
     return ConversationHandler.END
+
+
+def inline_handler(update, context):
+    selected, date = telegramcalendar.process_calendar_selection(
+        context.bot, update
+    )
+    if selected:
+        context.user_data['date'] = date.strftime("%Y-%m-%d")
+        step2(update, context)
 
 
 class Command(BaseCommand):
@@ -182,7 +176,6 @@ class Command(BaseCommand):
         bot = Bot(
             request=request,
             token=os.getenv('TELEGTAM_TOKEN_BOT'),
-            # base_url=os.getenv('PROXY_URL'),
         )
         updater = Updater(
             bot=bot,
@@ -196,16 +189,15 @@ class Command(BaseCommand):
                         MessageHandler(Filters.text, step1)],
                 STEP2: [CommandHandler('cancel', cancel),
                         MessageHandler(Filters.text, step2)],
-                STEP3: [CommandHandler('cancel', cancel),
-                        MessageHandler(Filters.text, step3)],
             },
             fallbacks=[CommandHandler('cancel', cancel)],
         )
 
         updater.dispatcher.add_handler(CommandHandler('start', start_bot))
         updater.dispatcher.add_handler(CommandHandler('help', help_bot))
+        updater.dispatcher.add_handler(CallbackQueryHandler(inline_handler))
         updater.dispatcher.add_handler(conv_handler)
         updater.dispatcher.add_handler(MessageHandler(Filters.text, say_hi))
 
-        updater.start_polling(10)
+        updater.start_polling(1)
         updater.idle()
