@@ -11,7 +11,7 @@ from users.models import Profile
 from constants import TELEGRAM_TEXT
 from dotenv import load_dotenv
 from holidays.models import Holiday
-from api.telegram_calendar_keyboard import telegramcalendar
+from want_present.api.telegram_calendar import telegramcalendar
 
 
 load_dotenv()
