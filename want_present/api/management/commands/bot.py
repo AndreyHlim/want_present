@@ -11,7 +11,8 @@ from users.models import Profile
 from constants import TELEGRAM_TEXT
 from dotenv import load_dotenv
 from holidays.models import Holiday
-from want_present.api.telegram_calendar import telegramcalendar
+from api.telegram_calendar import telegramcalendar
+import requests
 
 
 load_dotenv()
@@ -42,13 +43,28 @@ def log_errors(func):
 @log_errors
 def say_hi(update, context):
     chat = update.effective_chat
+    username = chat.first_name
 
-    Profile.objects.get_or_create(
-        id_telegram=chat.id,
-        defaults={
-            'username': chat.first_name,
-        }
-    )
+    user = Profile.objects.filter(id_telegram=chat.id)
+    if not user.exists():
+        context.bot.send_message(
+            chat_id=chat.id,
+            text=f'Приятно познакомиться, {username}!.',
+        )
+        requests.post(
+            'http://127.0.0.1:8000/api/users/',
+            headers={'content-type': 'application/json'},
+            json={
+                'id_telegram': chat.id,
+                'username': username,
+            }
+        )
+        # ToDo: надо как-то по-другому запросить пароль у пользователя
+        # или лучше автоматически его придумать и написать в чат
+        user = Profile.objects.get(id_telegram=chat.id)
+        context.user_data['password'] = '1234567890'
+        user.set_password(context.user_data.pop('password'))
+        user.save()
 
     if update.message.forward_from:
         if update.message.forward_from.is_bot:
@@ -113,6 +129,7 @@ def step1(update, context):
         "Укажите ближайшую дату этого праздника: ",
         reply_markup=telegramcalendar.create_calendar()
     )
+    return STEP2
 
 
 def step2(update, context):
@@ -195,8 +212,8 @@ class Command(BaseCommand):
 
         updater.dispatcher.add_handler(CommandHandler('start', start_bot))
         updater.dispatcher.add_handler(CommandHandler('help', help_bot))
-        updater.dispatcher.add_handler(CallbackQueryHandler(inline_handler))
         updater.dispatcher.add_handler(conv_handler)
+        updater.dispatcher.add_handler(CallbackQueryHandler(inline_handler))
         updater.dispatcher.add_handler(MessageHandler(Filters.text, say_hi))
 
         updater.start_polling(1)

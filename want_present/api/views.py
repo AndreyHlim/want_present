@@ -6,6 +6,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
+from api.permissions import AuthorStaffOrReadOnly
 
 
 User = get_user_model()
@@ -14,6 +16,17 @@ User = get_user_model()
 class HolidaysViewSet(viewsets.ModelViewSet):
     queryset = Holiday.objects.all()
     serializer_class = HolidaySerializer
+    http_method_names = ['get', 'post', 'delete', 'patch']
+
+    def list(self, request):
+        queryset = self.queryset.filter(user=request.user.id_telegram)
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
+
+    def get_permissions(self):
+        if self.request.method == 'DELETE' or self.request.method == 'PATCH':
+            return (AuthorStaffOrReadOnly(),)
+        return (IsAuthenticated(),)
 
 
 class UsersViewSet(viewsets.ModelViewSet):

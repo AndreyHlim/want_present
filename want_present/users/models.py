@@ -7,6 +7,13 @@ from constants import CONSTANTS
 class Profile(AbstractUser):
     """Кастомная модель пользователя."""
 
+    USERNAME_FIELD = 'id_telegram'
+
+    username = models.CharField(
+        'Имя пользователя',
+        max_length=50,
+        unique=False,
+    )
     id_telegram = models.IntegerField(
         'ID пользователя в Telegram',
         primary_key=True,
