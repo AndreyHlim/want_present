@@ -1,14 +1,15 @@
-from rest_framework import status, viewsets
-from holidays.models import Holiday
-from users.models import Subscribe
-from .serializers import HolidaySerializer, UserSerializer, SubscribeSerializer
-from django.contrib.auth import get_user_model
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from rest_framework.permissions import IsAuthenticated
 from api.permissions import AuthorStaffOrReadOnly
+from holidays.models import Holiday
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from users.models import Subscribe
 
+from django.contrib.auth import get_user_model
+from django.shortcuts import get_object_or_404
+
+from .serializers import HolidaySerializer, SubscribeSerializer, UserSerializer
 
 User = get_user_model()
 

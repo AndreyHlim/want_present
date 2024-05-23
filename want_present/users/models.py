@@ -1,13 +1,15 @@
-from django.db import models
-from django.contrib.auth.models import AbstractUser
-from django.contrib.auth import get_user_model
 from constants import CONSTANTS
+
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
+from django.db import models
 
 
 class Profile(AbstractUser):
     """Кастомная модель пользователя."""
 
     USERNAME_FIELD = 'id_telegram'
+    REQUIRED_FIELDS = ['username',]
 
     username = models.CharField(
         'Имя пользователя',

@@ -1,5 +1,5 @@
-from rest_framework import serializers
 from holidays.models import Holiday, User
+from rest_framework import serializers
 from users.models import Subscribe
 
 

@@ -1,19 +1,24 @@
-from django.core.management.base import BaseCommand
-from telegram.utils.request import Request
-from telegram import Bot, ParseMode
-import os
 import logging
-from telegram.ext import (
-    Updater, Filters, MessageHandler, CommandHandler,
-    ConversationHandler, CallbackQueryHandler,
-)
-from users.models import Profile
+import os
+
+import requests
+from api.telegram_calendar import telegramcalendar
 from constants import TELEGRAM_TEXT
 from dotenv import load_dotenv
 from holidays.models import Holiday
-from api.telegram_calendar import telegramcalendar
-import requests
+from telegram import Bot, ParseMode
+from telegram.ext import (
+    CallbackQueryHandler,
+    CommandHandler,
+    ConversationHandler,
+    Filters,
+    MessageHandler,
+    Updater
+)
+from telegram.utils.request import Request
+from users.models import Profile
 
+from django.core.management.base import BaseCommand
 
 load_dotenv()
 

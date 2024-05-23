@@ -1,7 +1,8 @@
 from rest_framework import routers
-from .views import HolidaysViewSet, UsersViewSet
+
 from django.urls import include, path
 
+from .views import HolidaysViewSet, UsersViewSet
 
 router_v1 = routers.DefaultRouter()
 router_v1.register('holidays', HolidaysViewSet, basename='holidays')
