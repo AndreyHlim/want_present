@@ -67,7 +67,7 @@ def say_hi(update, context):
         # ToDo: надо как-то по-другому запросить пароль у пользователя
         # или лучше автоматически его придумать и написать в чат
         user = Profile.objects.get(id_telegram=chat.id)
-        context.user_data['password'] = '1234567890'
+        context.user_data['password'] = os.getenv('USER_PASSWORD')
         user.set_password(context.user_data.pop('password'))
         user.save()
 
