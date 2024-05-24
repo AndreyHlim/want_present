@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from holidays.models import Holiday, User
 from rest_framework import serializers
 from users.models import Subscribe
@@ -12,6 +14,20 @@ class HolidaySerializer(serializers.ModelSerializer):
     class Meta:
         model = Holiday
         fields = ('id', 'name', 'date', 'user')
+
+    def validate_date(self, value):
+        if value < datetime.now().date():
+            raise serializers.ValidationError(
+                'Нельзя создавать ближайшую дату празднования в прошлом.'
+            )
+        elif value > datetime.now().date().replace(
+            year=datetime.now().date().year+15
+        ):
+            raise serializers.ValidationError(
+                'Нельзя создавать дату празднования в будущем '
+                'более чем на 15 лет.'
+            )
+        return value
 
 
 class UserSerializer(serializers.ModelSerializer):

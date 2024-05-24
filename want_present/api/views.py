@@ -1,4 +1,4 @@
-from api.permissions import AuthorStaffOrReadOnly
+from api.permissions import OnlyAuthor
 from holidays.models import Holiday
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -26,14 +26,23 @@ class HolidaysViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.request.method == 'DELETE' or self.request.method == 'PATCH':
-            return (AuthorStaffOrReadOnly(),)
+            return (OnlyAuthor(),)
         return (IsAuthenticated(),)
+
+    def create(self, request):
+        request.data['user'] = request.user.id_telegram
+        serializers = HolidaySerializer(data=request.data)
+        if serializers.is_valid():
+            serializers.save()
+            return Response(serializers.data, status=status.HTTP_201_CREATED)
+        return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     http_method_names = ['get', 'post', 'delete', 'patch',]
     serializer_class = UserSerializer
+    permission_classes = (IsAuthenticated,)
 
     @action(
         detail=True,

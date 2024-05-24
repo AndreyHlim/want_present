@@ -1,4 +1,5 @@
 import pytest
+from holidays.models import Holiday
 from rest_framework.test import APIClient
 
 
@@ -58,4 +59,47 @@ def author_token(client, author, author_user_data):
 def author_client(author_token):
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION='Token ' + author_token)
+    return client
+
+
+@pytest.fixture
+def holiday_data(author):
+    return {
+        'name': 'Новый праздник',
+        'date': '2033-09-04',
+        'user': author
+    }
+
+
+@pytest.fixture
+def holiday(holiday_data):
+    holiday = Holiday.objects.create(**holiday_data)
+    return holiday
+
+
+@pytest.fixture
+def not_author_user_data():
+    return {
+        'id_telegram': 444444444,
+        'username': 'Not_author',
+        'password': '123456',
+    }
+
+
+@pytest.fixture
+def not_author(django_user_model, not_author_user_data):
+    return django_user_model.objects.create_superuser(**not_author_user_data)
+
+
+@pytest.fixture
+def not_author_token(client, not_author, not_author_user_data):
+    login_url = '/auth/token/login/'
+    response = client.post(login_url, not_author_user_data, format='json')
+    return response.data['auth_token']
+
+
+@pytest.fixture
+def not_author_client(not_author_token):
+    client = APIClient()
+    client.credentials(HTTP_AUTHORIZATION='Token ' + not_author_token)
     return client
