@@ -3,6 +3,7 @@ from datetime import datetime
 from holidays.models import Holiday, User
 from rest_framework import serializers
 from users.models import Subscribe
+from constants import CONSTANTS
 
 
 class HolidaySerializer(serializers.ModelSerializer):
@@ -20,12 +21,12 @@ class HolidaySerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Нельзя создавать ближайшую дату празднования в прошлом.'
             )
-        elif value > datetime.now().date().replace(
-            year=datetime.now().date().year+15
+        elif value >= datetime.now().date().replace(
+            year=datetime.now().date().year+CONSTANTS['LIFE_SPAN']
         ):
             raise serializers.ValidationError(
                 'Нельзя создавать дату празднования в будущем '
-                'более чем на 15 лет.'
+                'более чем на {0} лет.'.format(CONSTANTS['LIFE_SPAN'])
             )
         return value
 

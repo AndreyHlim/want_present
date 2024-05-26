@@ -15,7 +15,10 @@ CONSTANTS: dict[str: int] = {
     'MAX_COMMENT': 150,
 
     # максимальная длина названия праздника/памятной даты
-    'MAX_NAME_HOLIDAY': 50
+    'MAX_NAME_HOLIDAY': 50,
+
+    # на сколько лет вперёд планируется запоминать даты праздников
+    'LIFE_SPAN': 15,
 }
 
 TELEGRAM_TEXT = {

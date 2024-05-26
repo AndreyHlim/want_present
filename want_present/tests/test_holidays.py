@@ -61,19 +61,20 @@ def test_change_name_holiday_for_user(client_user, answer, url_holiday, name):
 
 
 def test_del_holiday_for_author(author_client, url_holiday):
-    """Проверяет позможность удаления праздника только его автором"""
-
+    """Проверяет возможность удаления праздника только его автором"""
     response = author_client.delete(url_holiday)
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert Holiday.objects.count() == 0
 
 
 def test_del_holiday_for_not_author(not_author_client, url_holiday):
+    """Проверяет возможность удаления праздника его автором"""
     not_author_client.delete(url_holiday)
     assert Holiday.objects.count() == 1
 
 
 def test_holiday_without_name(holiday_data, author_client, author):
+    """Проверяет невозможность создания праздника без указания названия"""
     holiday_data.pop('name')
     response = author_client.post(
         path='/api/holidays/',
@@ -89,6 +90,7 @@ def test_holiday_without_name(holiday_data, author_client, author):
 
 
 def test_holiday_long_name(holiday_data, author_client, author):
+    """Проверяет ограничение длины имени праздника"""
     holiday_data['name'] = CONSTANTS['MAX_NAME_HOLIDAY']*'O'+'P'
     holiday_data['user'] = author.id_telegram
     response = author_client.post(
@@ -103,6 +105,7 @@ def test_holiday_long_name(holiday_data, author_client, author):
 
 
 def test_holiday_without_date(holiday_data, author_client, author):
+    """Проверяет невозможность создания праздника без указания даты"""
     holiday_data.pop('date')
     response = author_client.post(
         '/api/holidays/',
@@ -115,6 +118,7 @@ def test_holiday_without_date(holiday_data, author_client, author):
 
 
 def test_repeat_holiday(author_client, holiday):
+    """Проверяет невозможность сохранения двух одинаковых праздников"""
     before_count = Holiday.objects.count()
     response = author_client.post(
         path='/api/holidays/',
@@ -136,21 +140,45 @@ def test_repeat_holiday(author_client, holiday):
     )
 
 
-def test_holiday_past_date(author_client, holiday_data, author):
+@pytest.mark.parametrize(
+        'date, answer',
+        [
+            (
+                datetime.now().date() - timedelta(days=1),
+                status.HTTP_400_BAD_REQUEST
+            ),
+            (
+                datetime.now().date().replace(
+                    year=datetime.now().date().year+CONSTANTS['LIFE_SPAN']
+                ),
+                status.HTTP_400_BAD_REQUEST
+            )
+        ],
+        ids=['past', 'life span'],
+)
+def test_holiday_past_date(author_client, holiday_data, author, date, answer):
+    """
+    Проверяет невозможность создания ближайшей даты празднования праздника:
+    1) в прошедшем времени;
+    2) далеко в будущем.
+    """
     before_count = Holiday.objects.count()
     holiday_data['user'] = author.id_telegram
     response = author_client.post(
         path='/api/holidays/',
         data={
             'name': holiday_data['name'],
-            'date': datetime.now().date() - timedelta(days=1),
+            'date': date,
             'user': holiday_data['user']
         },
         format='json'
     )
-    assert response.status_code == status.HTTP_400_BAD_REQUEST, (
+    assert response.status_code == answer, (
         'Убедитесь в том, что невозможно '
         'при создании ближайшего дня празднования '
-        'указать прошедшую дату.'
+        'указать прошедшую дату или дату в далёком будущем.'
     )
-    assert before_count == Holiday.objects.count()
+    assert before_count == Holiday.objects.count(), (
+        'Убедитесь в том, что при некорректной дате праздника '
+        '(в прошлом или сильно в будущем) не создаётся новая запись в базе'
+    )
