@@ -3,77 +3,87 @@ from datetime import datetime, timedelta
 import pytest
 from constants import CONSTANTS
 from holidays.models import Holiday
+from rest_framework import status
 
 
-def test_pages_availability_for_author(author_client, holiday):
-    url = f'/api/holidays/{holiday.id}/'
-    response = author_client.get(url)
-    assert response.status_code == 200
+@pytest.mark.parametrize(
+    'client_user, answer',
+    [
+        (pytest.lazy_fixture('author_client'), status.HTTP_200_OK),
+        (pytest.lazy_fixture('not_author_client'), status.HTTP_200_OK),
+        (pytest.lazy_fixture('client'), status.HTTP_401_UNAUTHORIZED),
+    ]
+)
+def test_pages_availability_for_user(client_user, url_holiday, answer):
+    """Проверяет доступен ли конерктный праздник любому авторизованному user"""
+    response = client_user.get(url_holiday)
+    assert response.status_code == answer
 
 
-def test_pages_availability_for_not_author(not_author_client, holiday):
-    url = f'/api/holidays/{holiday.id}/'
-    response = not_author_client.get(url)
-    assert response.status_code == 200
-
-
-def test_change_holiday_for_author(author_client, holiday):
-    new_name = 'Изменённое название праздника'
-    author_client.patch(
-        path=f'/api/holidays/{holiday.id}/',
-        data={'name': new_name},
+@pytest.mark.parametrize(
+    'client_user, answer, name',
+    [
+        (
+            pytest.lazy_fixture('author_client'),
+            status.HTTP_200_OK,
+            'Изменённое название праздника'
+        ),
+        (
+            pytest.lazy_fixture('not_author_client'),
+            status.HTTP_403_FORBIDDEN,
+            'Тестовый праздник'
+        ),
+        (
+            pytest.lazy_fixture('client'),
+            status.HTTP_401_UNAUTHORIZED,
+            'Тестовый праздник'
+        ),
+    ],
+    ids=['author', 'not author', 'not_auth_user'],
+)
+def test_change_name_holiday_for_user(client_user, answer, url_holiday, name):
+    """Проверяет возможность изменения имени праздника только его автору"""
+    response = client_user.patch(
+        path=url_holiday,
+        data={'name': 'Изменённое название праздника'},
         format='json'
     )
-    new_holiday = Holiday.objects.get()
-    assert new_holiday.name == new_name
-
-
-def test_change_holiday_for_not_author(not_author_client,
-                                       holiday,
-                                       holiday_data):
-    old_name = holiday.name
-    new_name = 'Изменённое название праздника'
-    response = not_author_client.patch(
-        path=f'/api/holidays/{holiday.id}/',
-        data={'name': new_name},
-        format='json'
+    assert response.status_code == answer, (
+        'Убедитель в том, что данные о празднике '
+        'может изменять автор (только автор) праздника.'
     )
     new_holiday = Holiday.objects.get()
-    assert response.status_code == 403
-    assert new_holiday.name == old_name
+    assert new_holiday.name == name, (
+        'Убедитесь в том, что ПРОИСХОДИТ изменение названия праздника '
+        'в базе данных, если его изменяет АВТОР и НЕ ИЗМЕНЯЕТСЯ название '
+        'праздника, если это пытается сделать другой пользователь.'
+    )
 
 
-@pytest.mark.django_db
-def test_count_holidays_db():
+def test_del_holiday_for_author(author_client, url_holiday):
+    """Проверяет позможность удаления праздника только его автором"""
+
+    response = author_client.delete(url_holiday)
+    assert response.status_code == status.HTTP_204_NO_CONTENT
     assert Holiday.objects.count() == 0
 
 
-@pytest.mark.django_db
-def test_count_holidays_db_1(holiday):
-    assert Holiday.objects.count() == 1
-
-
-def test_del_holiday_for_author(author_client, holiday):
-    url = f'/api/holidays/{holiday.id}/'
-    response = author_client.delete(url)
-    assert response.status_code == 204
-    assert Holiday.objects.count() == 0
-
-
-def test_del_holiday_for_not_author(not_author_client, holiday):
-    url = f'/api/holidays/{holiday.id}/'
-    not_author_client.delete(url)
+def test_del_holiday_for_not_author(not_author_client, url_holiday):
+    not_author_client.delete(url_holiday)
     assert Holiday.objects.count() == 1
 
 
 def test_holiday_without_name(holiday_data, author_client, author):
     holiday_data.pop('name')
     response = author_client.post(
-        '/api/holidays/',
-        data={'date': '2034-05-22', 'user': author.id_telegram},
+        path='/api/holidays/',
+        data={
+            'date': '2034-05-22',
+            'user': author.id_telegram
+        },
         format='json'
     )
-    assert response.status_code == 400, (
+    assert response.status_code == status.HTTP_400_BAD_REQUEST, (
         'Убедитесь в том, что при создании праздника передано значение "name"'
     )
 
@@ -86,7 +96,7 @@ def test_holiday_long_name(holiday_data, author_client, author):
         data=holiday_data,
         format='json'
     )
-    assert response.status_code == 400, (
+    assert response.status_code == status.HTTP_400_BAD_REQUEST, (
         'Убедитесь в том, что поле "name" для создаваемого праздника '
         'не длинее {0} символов.'.format(CONSTANTS['MAX_NAME_HOLIDAY'])
     )
@@ -99,7 +109,7 @@ def test_holiday_without_date(holiday_data, author_client, author):
         data={'name': 'какой-то праздник', 'user': author.id_telegram},
         format='json'
     )
-    assert response.status_code == 400, (
+    assert response.status_code == status.HTTP_400_BAD_REQUEST, (
         'Убедитесь в том, что при создании праздника передано значение "date".'
     )
 
@@ -115,11 +125,15 @@ def test_repeat_holiday(author_client, holiday):
         },
         format='json'
     )
-    assert response.status_code == 400, (
+    assert response.status_code == status.HTTP_400_BAD_REQUEST, (
         'Убедитесь в том, что невозможно создать два праздника '
         'с одинаковыми "name", "date" и "user".'
     )
-    assert before_count == Holiday.objects.count()
+    assert before_count == Holiday.objects.count(), (
+        'Убедитесь в том, что при некорректных данных о празднике '
+        '(попытка повторного сохранения праздника) '
+        'в базе не создаётся новыая запись.'
+    )
 
 
 def test_holiday_past_date(author_client, holiday_data, author):
@@ -134,7 +148,7 @@ def test_holiday_past_date(author_client, holiday_data, author):
         },
         format='json'
     )
-    assert response.status_code == 400, (
+    assert response.status_code == status.HTTP_400_BAD_REQUEST, (
         'Убедитесь в том, что невозможно '
         'при создании ближайшего дня празднования '
         'указать прошедшую дату.'

@@ -65,7 +65,7 @@ def author_client(author_token):
 @pytest.fixture
 def holiday_data(author):
     return {
-        'name': 'Новый праздник',
+        'name': 'Тестовый праздник',
         'date': '2033-09-04',
         'user': author
     }
@@ -103,3 +103,8 @@ def not_author_client(not_author_token):
     client = APIClient()
     client.credentials(HTTP_AUTHORIZATION='Token ' + not_author_token)
     return client
+
+
+@pytest.fixture
+def url_holiday(holiday):
+    return f'/api/holidays/{holiday.id}/'
