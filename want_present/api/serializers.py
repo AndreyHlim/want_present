@@ -1,9 +1,9 @@
 from datetime import datetime
 
+from constants import CONSTANTS
 from holidays.models import Holiday, User
 from rest_framework import serializers
 from users.models import Subscribe
-from constants import CONSTANTS
 
 
 class HolidaySerializer(serializers.ModelSerializer):

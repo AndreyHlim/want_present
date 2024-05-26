@@ -15,9 +15,12 @@ from rest_framework import status
     ]
 )
 def test_pages_availability_for_user(client_user, url_holiday, answer):
-    """Проверяет доступен ли конерктный праздник любому авторизованному user"""
+    """Проверяет доступен ли конкретный праздник любому авторизованному user"""
     response = client_user.get(url_holiday)
-    assert response.status_code == answer
+    assert response.status_code == answer, (
+        'Убедитесь, что авторизованные пользователи имею доступ '
+        'к отбельному празднику, а неавторизованные - нет'
+    )
 
 
 @pytest.mark.parametrize(
@@ -64,13 +67,17 @@ def test_del_holiday_for_author(author_client, url_holiday):
     """Проверяет возможность удаления праздника только его автором"""
     response = author_client.delete(url_holiday)
     assert response.status_code == status.HTTP_204_NO_CONTENT
-    assert Holiday.objects.count() == 0
+    assert Holiday.objects.count() == 0, (
+        'Убедитесь в том, что автор может удалить свой праздник'
+    )
 
 
 def test_del_holiday_for_not_author(not_author_client, url_holiday):
-    """Проверяет возможность удаления праздника его автором"""
+    """Проверяет невозможность удаления праздника не его автором"""
     not_author_client.delete(url_holiday)
-    assert Holiday.objects.count() == 1
+    assert Holiday.objects.count() == 1, (
+        'Убедитесь в том, что праздник может удалить только его автор'
+    )
 
 
 def test_holiday_without_name(holiday_data, author_client, author):
@@ -108,7 +115,7 @@ def test_holiday_without_date(holiday_data, author_client, author):
     """Проверяет невозможность создания праздника без указания даты"""
     holiday_data.pop('date')
     response = author_client.post(
-        '/api/holidays/',
+        path='/api/holidays/',
         data={'name': 'какой-то праздник', 'user': author.id_telegram},
         format='json'
     )
@@ -182,3 +189,8 @@ def test_holiday_past_date(author_client, holiday_data, author, date, answer):
         'Убедитесь в том, что при некорректной дате праздника '
         '(в прошлом или сильно в будущем) не создаётся новая запись в базе'
     )
+
+
+@pytest.mark.xfail(reason='пользователь Автор для тестов создан неверно')
+def test_is_not_superuser_author(author):
+    assert not author.is_superuser
