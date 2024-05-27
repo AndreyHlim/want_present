@@ -5,6 +5,8 @@ from constants import CONSTANTS
 from holidays.models import Holiday
 from rest_framework import status
 
+from django.urls import reverse
+
 
 @pytest.mark.parametrize(
     'client_user, answer',
@@ -12,6 +14,7 @@ from rest_framework import status
         (pytest.lazy_fixture('author_client'), status.HTTP_200_OK),
         (pytest.lazy_fixture('not_author_client'), status.HTTP_200_OK),
         (pytest.lazy_fixture('client'), status.HTTP_401_UNAUTHORIZED),
+        (pytest.lazy_fixture('admin_client'), status.HTTP_200_OK),
     ]
 )
 def test_pages_availability_for_user(client_user, url_holiday, answer):
@@ -80,11 +83,10 @@ def test_del_holiday_for_not_author(not_author_client, url_holiday):
     )
 
 
-def test_holiday_without_name(holiday_data, author_client, author):
+def test_holiday_without_name(author_client, author):
     """Проверяет невозможность создания праздника без указания названия"""
-    holiday_data.pop('name')
     response = author_client.post(
-        path='/api/holidays/',
+        path=reverse('api:holidays-list'),
         data={
             'date': '2034-05-22',
             'user': author.id_telegram
@@ -96,13 +98,16 @@ def test_holiday_without_name(holiday_data, author_client, author):
     )
 
 
-def test_holiday_long_name(holiday_data, author_client, author):
+def test_holiday_long_name(holiday, author_client, author):
     """Проверяет ограничение длины имени праздника"""
-    holiday_data['name'] = CONSTANTS['MAX_NAME_HOLIDAY']*'O'+'P'
-    holiday_data['user'] = author.id_telegram
+    holiday.name = CONSTANTS['MAX_NAME_HOLIDAY']*'O'+'P'
     response = author_client.post(
-        path='/api/holidays/',
-        data=holiday_data,
+        path=reverse('api:holidays-list'),
+        data={
+            'name': holiday.name,
+            'date': holiday.date,
+            'user': author.id_telegram
+        },
         format='json'
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST, (
@@ -111,12 +116,14 @@ def test_holiday_long_name(holiday_data, author_client, author):
     )
 
 
-def test_holiday_without_date(holiday_data, author_client, author):
+def test_holiday_without_date(author_client, author):
     """Проверяет невозможность создания праздника без указания даты"""
-    holiday_data.pop('date')
     response = author_client.post(
-        path='/api/holidays/',
-        data={'name': 'какой-то праздник', 'user': author.id_telegram},
+        path=reverse('api:holidays-list'),
+        data={
+            'name': 'какой-то праздник',
+            'user': author.id_telegram
+        },
         format='json'
     )
     assert response.status_code == status.HTTP_400_BAD_REQUEST, (
@@ -128,7 +135,7 @@ def test_repeat_holiday(author_client, holiday):
     """Проверяет невозможность сохранения двух одинаковых праздников"""
     before_count = Holiday.objects.count()
     response = author_client.post(
-        path='/api/holidays/',
+        path=reverse('api:holidays-list'),
         data={
             'name': holiday.name,
             'date': holiday.date,
@@ -163,20 +170,19 @@ def test_repeat_holiday(author_client, holiday):
         ],
         ids=['past', 'life span'],
 )
-def test_holiday_past_date(author_client, holiday_data, author, date, answer):
+def test_holiday_past_date(author_client, holiday, author, date, answer):
     """
     Проверяет невозможность создания ближайшей даты празднования праздника:
     1) в прошедшем времени;
     2) далеко в будущем.
     """
     before_count = Holiday.objects.count()
-    holiday_data['user'] = author.id_telegram
     response = author_client.post(
-        path='/api/holidays/',
+        path=reverse('api:holidays-list'),
         data={
-            'name': holiday_data['name'],
+            'name': holiday.name,
             'date': date,
-            'user': holiday_data['user']
+            'user': author.id_telegram
         },
         format='json'
     )
@@ -189,8 +195,3 @@ def test_holiday_past_date(author_client, holiday_data, author, date, answer):
         'Убедитесь в том, что при некорректной дате праздника '
         '(в прошлом или сильно в будущем) не создаётся новая запись в базе'
     )
-
-
-@pytest.mark.xfail(reason='пользователь Автор для тестов создан неверно')
-def test_is_not_superuser_author(author):
-    assert not author.is_superuser
