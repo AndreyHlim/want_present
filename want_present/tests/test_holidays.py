@@ -141,7 +141,7 @@ def test_repeat_holiday(
     ],
     ids=['past', 'life span'],
 )
-def test_holiday_incorrect_date(author_client, holiday_data, dt, url_holidays):
+def test_holiday_wrong_date(author_client, holiday_data, dt, url_holidays):
     """
     Проверяет невозможность создания ближайшей даты празднования праздника:
     1) в прошедшем времени;
@@ -159,3 +159,13 @@ def test_holiday_incorrect_date(author_client, holiday_data, dt, url_holidays):
         'Убедитесь в том, что при некорректной дате праздника '
         '(в прошлом или сильно в будущем) не создаётся новая запись в базе'
     )
+
+
+def test_holiday_wrong_user(author_client, author, url_holidays, holiday_data):
+    """Проверяет невозможность создания праздника без указания даты"""
+    holiday_data['name'] = 'какая-то длинная непонятная строка вместо User'
+    response = author_client.post(url_holidays, {**holiday_data}, 'json')
+    message = 'Убедитесь в том, что праздник создаётся от имени запрашивающего'
+    assert response.status_code == status.HTTP_201_CREATED, message
+    holiday = Holiday.objects.get()
+    assert holiday.user == author, message
