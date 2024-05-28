@@ -37,12 +37,9 @@ def author_client(client, url_login, author, user_data):
 
 
 @pytest.fixture
-def holiday(author):
-    holiday = Holiday.objects.create(
-        name='Тестовый праздник',
-        date='2033-09-04',
-        user=author,
-    )
+def holiday(holiday_data, author):
+    holiday_data['user'] = author
+    holiday = Holiday.objects.create(**holiday_data)
     return holiday
 
 
@@ -88,3 +85,16 @@ def user_data():
             'password': '1234567890',
         },
     }
+
+
+@pytest.fixture
+def holiday_data():
+    return {
+        'name': 'Тестовый праздник',
+        'date': '2033-09-04',
+    }
+
+
+@pytest.fixture
+def url_holidays():
+    return reverse('api:holidays-list')
