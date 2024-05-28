@@ -6,55 +6,33 @@ from django.urls import reverse
 
 
 @pytest.fixture
-def admin(django_user_model):
-    return django_user_model.objects.create_superuser(
-        id_telegram=777777777,
-        username='Admin',
-        password='1234567890',
-        email='admin@admin.admin'
-    )
+def admin(django_user_model, user_data):
+    return django_user_model.objects.create_superuser(**user_data['admin'])
 
 
 @pytest.fixture
-def admin_client(client, admin, url_login):
-    response = client.post(
-        path=url_login,
-        data={
-            'id_telegram': admin.id_telegram,
-            'password': '1234567890',
-        },
-        format='json'
-    )
-    admin_token = response.data['auth_token']
+def admin_client(client, admin, url_login, user_data):
+    response = client.post(url_login, {**user_data['admin']})
+    token = response.data['auth_token']
     client = APIClient()
-    client.credentials(HTTP_AUTHORIZATION='Token ' + admin_token)
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
 
 @pytest.fixture
-def author(django_user_model):
-    user = django_user_model.objects.create(
-        id_telegram=123456789,
-        username='Author',
-    )
-    user.set_password('1234567890')
+def author(django_user_model, user_data):
+    user = django_user_model.objects.create(**user_data['author'])
+    user.set_password(user_data['author']['password'])
     user.save()
     return user
 
 
 @pytest.fixture
-def author_client(client, url_login, author):
-    response = client.post(
-        path=url_login,
-        data={
-            'id_telegram': author.id_telegram,
-            'password': '1234567890',
-        },
-        format='json'
-    )
-    author_token = response.data['auth_token']
+def author_client(client, url_login, author, user_data):
+    response = client.post(url_login, {**user_data['author']})
+    token = response.data['auth_token']
     client = APIClient()
-    client.credentials(HTTP_AUTHORIZATION='Token ' + author_token)
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
 
@@ -63,35 +41,20 @@ def holiday(author):
     holiday = Holiday.objects.create(
         name='Тестовый праздник',
         date='2033-09-04',
-        user=author
+        user=author,
     )
     return holiday
 
 
 @pytest.fixture
-def not_author_user_data():
-    return {
-        'id_telegram': 444444444,
-        'username': 'Not_author',
-        'password': '123456',
-    }
-
-
-@pytest.fixture
-def not_author(django_user_model, not_author_user_data):
-    return django_user_model.objects.create_superuser(**not_author_user_data)
-
-
-@pytest.fixture
-def not_author_token(client, not_author, not_author_user_data, url_login):
-    response = client.post(url_login, not_author_user_data, format='json')
-    return response.data['auth_token']
-
-
-@pytest.fixture
-def not_author_client(not_author_token):
+def not_author_client(client, django_user_model, url_login, user_data):
+    user = django_user_model.objects.create(**user_data['not_author'])
+    user.set_password(user_data['not_author']['password'])
+    user.save()
+    response = client.post(url_login, {**user_data['not_author']})
+    token = response.data['auth_token']
     client = APIClient()
-    client.credentials(HTTP_AUTHORIZATION='Token ' + not_author_token)
+    client.credentials(HTTP_AUTHORIZATION='Token ' + token)
     return client
 
 
@@ -103,3 +66,25 @@ def url_holiday(holiday):
 @pytest.fixture
 def url_login():
     return reverse('login')
+
+
+@pytest.fixture
+def user_data():
+    return {
+        'admin': {
+            'id_telegram': 777777777,
+            'username': 'Admin',
+            'email': 'admin@admin.admin',
+            'password': '1234567890',
+        },
+        'author': {
+            'id_telegram': 666666666,
+            'username': 'Author',
+            'password': '1234567890',
+        },
+        'not_author': {
+            'id_telegram': 555555555,
+            'username': 'Not_Author',
+            'password': '1234567890',
+        },
+    }
