@@ -22,7 +22,7 @@ class AuthorStaffOrReadOnly(BasePermission):
 
 class OnlyAuthor(BaseException):
     """
-    Разрешение на изменение/удаление только для автора.
+    Разрешение на изменение/удаление праздника только для автора.
     Остальным только чтение объекта.
     """
 
@@ -31,3 +31,13 @@ class OnlyAuthor(BaseException):
 
     def has_object_permission(self, request, view, obj):
         return request.user == obj.user
+
+
+class OnlyAuthorOrAdmin(OnlyAuthor):
+    """
+    Разрешение на изменение/удаление пользователя только для автора.
+    или администратора. Остальным только чтение объекта.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        return request.user.is_superuser or request.user == obj

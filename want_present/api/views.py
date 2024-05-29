@@ -1,15 +1,20 @@
-from api.permissions import OnlyAuthor
+import os
+
+from api.permissions import OnlyAuthor, OnlyAuthorOrAdmin
+from dotenv import load_dotenv
 from holidays.models import Holiday
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from users.models import Subscribe
+from users.models import Profile, Subscribe
 
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
 from .serializers import HolidaySerializer, SubscribeSerializer, UserSerializer
+
+load_dotenv()
 
 User = get_user_model()
 
@@ -42,7 +47,6 @@ class UsersViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     http_method_names = ['get', 'post', 'delete', 'patch',]
     serializer_class = UserSerializer
-    permission_classes = (IsAuthenticated,)
 
     @action(
         detail=True,
@@ -68,3 +72,25 @@ class UsersViewSet(viewsets.ModelViewSet):
         )
         subscribe.delete()
         return Response("Подписка удалена", status=status.HTTP_204_NO_CONTENT)
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return (IsAuthenticated(),)
+        elif self.request.method == 'POST':
+            return (AllowAny(),)
+        return (OnlyAuthorOrAdmin(),)
+
+    def create(self, request):
+        serializers = self.serializer_class(data=request.data)
+        if serializers.is_valid():
+            serializers.save()
+
+            # Удалить потом. Пароль будет присваиваться в commands/bot.py
+            user = Profile.objects.get(
+                id_telegram=serializers.validated_data['id_telegram']
+            )
+            user.set_password(os.getenv('USER_PASSWORD'))
+            user.save()
+
+            return Response(serializers.data, status=status.HTTP_201_CREATED)
+        return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
