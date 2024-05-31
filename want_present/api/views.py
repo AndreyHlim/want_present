@@ -25,7 +25,9 @@ class HolidaysViewSet(viewsets.ModelViewSet):
     http_method_names = ['get', 'post', 'delete', 'patch']
 
     def list(self, request):
-        queryset = self.queryset.filter(user=request.user.id_telegram)
+        queryset = self.queryset.filter(
+            user=request.user.id_telegram
+        ).order_by('date')
         serializer = self.serializer_class(queryset, many=True)
         return Response(serializer.data)
 
@@ -94,3 +96,14 @@ class UsersViewSet(viewsets.ModelViewSet):
 
             return Response(serializers.data, status=status.HTTP_201_CREATED)
         return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        detail=True,
+        methods=['get',],
+    )
+    def holidays(self, request, pk):
+        queryset = Holiday.objects.filter(
+            user=get_object_or_404(User, id_telegram=pk)
+        ).order_by('date')
+        serializer = HolidaySerializer(queryset, many=True)
+        return Response(serializer.data)
