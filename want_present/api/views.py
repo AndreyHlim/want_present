@@ -1,6 +1,6 @@
 import os
 
-from api.permissions import OnlyAuthor, OnlyAuthorOrAdmin
+from api.permissions import OnlyAuthorOrAdmin
 from dotenv import load_dotenv
 from gifts.models import Gift
 from holidays.models import Holiday
@@ -39,7 +39,7 @@ class HolidaysViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.request.method == 'DELETE' or self.request.method == 'PATCH':
-            return (OnlyAuthor(),)
+            return (OnlyAuthorOrAdmin(),)
         return (IsAuthenticated(),)
 
     def create(self, request):
@@ -119,4 +119,11 @@ class GiftsViewSet(viewsets.ModelViewSet):
     queryset = Gift.objects.all()
     serializer_class = GiftSerializer
     http_method_names = ['get', 'post', 'delete', 'patch']
-    permission_classes = (IsAuthenticated,)
+
+    def get_permissions(self):
+        if (
+            self.request.method == 'DELETE'
+            or self.request.method == 'PATCH'
+        ):
+            return (OnlyAuthorOrAdmin(),)
+        return (IsAuthenticated(),)

@@ -29,8 +29,8 @@ def test_pages_availability_for_user(client_user, url_holiday, answer):
     [
         (
             pytest.lazy_fixture('admin_client'),
-            status.HTTP_403_FORBIDDEN,
-            'Тестовый праздник'
+            status.HTTP_200_OK,
+            'Изменённое название'
         ),
         (
             pytest.lazy_fixture('author_client'),
