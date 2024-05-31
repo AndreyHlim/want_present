@@ -2,6 +2,7 @@ import os
 
 from api.permissions import OnlyAuthor, OnlyAuthorOrAdmin
 from dotenv import load_dotenv
+from gifts.models import Gift
 from holidays.models import Holiday
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -12,7 +13,12 @@ from users.models import Profile, Subscribe
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 
-from .serializers import HolidaySerializer, SubscribeSerializer, UserSerializer
+from .serializers import (
+    GiftSerializer,
+    HolidaySerializer,
+    SubscribeSerializer,
+    UserSerializer
+)
 
 load_dotenv()
 
@@ -107,3 +113,10 @@ class UsersViewSet(viewsets.ModelViewSet):
         ).order_by('date')
         serializer = HolidaySerializer(queryset, many=True)
         return Response(serializer.data)
+
+
+class GiftsViewSet(viewsets.ModelViewSet):
+    queryset = Gift.objects.all()
+    serializer_class = GiftSerializer
+    http_method_names = ['get', 'post', 'delete', 'patch']
+    permission_classes = (IsAuthenticated,)

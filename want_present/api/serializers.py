@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from constants import CONSTANTS
+from gifts.models import Gift
 from holidays.models import Holiday, User
 from rest_framework import serializers
 from users.models import Subscribe
@@ -51,3 +52,19 @@ class SubscribeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscribe
         fields = ('user', 'subscribe', 'is_congratulate', 'name')
+
+
+class GiftSerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели 'Подарки'.
+    Используется для отображения желаемых подарков пользователей.
+    """
+    user = UserSerializer()
+    event = HolidaySerializer()
+
+    class Meta:
+        model = Gift
+        fields = (
+            'id', 'short_name', 'user', 'hyperlink', 'is_donated',
+            'is_booked', 'is_want', 'event', 'comment',
+        )
