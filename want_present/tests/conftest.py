@@ -61,8 +61,24 @@ def url_holiday(holiday):
 
 
 @pytest.fixture
+def url_holidays():
+    return reverse('api:holidays-list')
+
+
+@pytest.fixture
+def url_users():
+    return reverse('api:users-list')
+
+
+@pytest.fixture
 def url_login():
     return reverse('login')
+
+
+@pytest.fixture
+def url_holidays_author(author):
+    url_user = reverse('api:users-detail', kwargs={"pk": author.id_telegram})
+    return url_user + 'holidays/'
 
 
 @pytest.fixture
@@ -93,8 +109,3 @@ def holiday_data():
         'name': 'Тестовый праздник',
         'date': '2033-09-04',
     }
-
-
-@pytest.fixture
-def url_holidays():
-    return reverse('api:holidays-list')
