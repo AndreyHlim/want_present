@@ -1,4 +1,5 @@
 import pytest
+from gifts.models import Gift
 from holidays.models import Holiday
 from rest_framework.test import APIClient
 
@@ -109,3 +110,25 @@ def holiday_data():
         'name': 'Тестовый праздник',
         'date': '2033-09-04',
     }
+
+
+@pytest.fixture
+def gift_data(holiday):
+    return {
+        'short_name': 'Какое-то название',
+        'hyperlink': 'Какая-то ссылка',
+        'event': holiday,
+        'comment': 'Комментарий к подарку',
+        'user': holiday.user,
+    }
+
+
+@pytest.fixture
+def gift(gift_data):
+    gift = Gift.objects.create(**gift_data)
+    return gift
+
+
+@pytest.fixture
+def url_gift(gift):
+    return reverse('api:gifts-detail', kwargs={'pk': gift.id})

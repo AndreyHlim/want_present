@@ -71,7 +71,6 @@ class GiftSerializer(serializers.ModelSerializer):
 
     def validate_event(self, value):
         holiday = Holiday.objects.get(id=value.id)
-        print(self.initial_data['user'], holiday.user.id_telegram)
         if holiday.user.id_telegram != self.initial_data['user']:
             raise serializers.ValidationError(
                 'Нельзя создать желаемый подарок другому пользователю'
