@@ -127,3 +127,18 @@ class GiftsViewSet(viewsets.ModelViewSet):
         ):
             return (OnlyAuthorOrAdmin(),)
         return (IsAuthenticated(),)
+
+    def create(self, request):
+        request.data.update(
+            {
+                'user': request.user.id_telegram,
+                'is_donated': False,
+                'is_booked': False,
+                'is_want': True,
+            }
+        )
+        serializers = GiftSerializer(data=request.data)
+        if serializers.is_valid():
+            serializers.save()
+            return Response(serializers.data, status=status.HTTP_201_CREATED)
+        return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)

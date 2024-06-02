@@ -59,8 +59,8 @@ class GiftSerializer(serializers.ModelSerializer):
     Сериализатор модели 'Подарки'.
     Используется для отображения желаемых подарков пользователей.
     """
-    user = UserSerializer()
-    event = HolidaySerializer()
+    # user = UserSerializer()
+    # event = HolidaySerializer()
 
     class Meta:
         model = Gift
@@ -68,3 +68,12 @@ class GiftSerializer(serializers.ModelSerializer):
             'id', 'short_name', 'user', 'hyperlink', 'is_donated',
             'is_booked', 'is_want', 'event', 'comment',
         )
+
+    def validate_event(self, value):
+        holiday = Holiday.objects.get(id=value.id)
+        print(self.initial_data['user'], holiday.user.id_telegram)
+        if holiday.user.id_telegram != self.initial_data['user']:
+            raise serializers.ValidationError(
+                'Нельзя создать желаемый подарок другому пользователю'
+            )
+        return value
