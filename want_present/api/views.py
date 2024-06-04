@@ -26,14 +26,12 @@ User = get_user_model()
 
 
 class HolidaysViewSet(viewsets.ModelViewSet):
-    queryset = Holiday.objects.all()
+    queryset = Holiday.objects.all().order_by('date')
     serializer_class = HolidaySerializer
     http_method_names = ['get', 'post', 'delete', 'patch']
 
     def list(self, request):
-        queryset = self.queryset.filter(
-            user=request.user.id_telegram
-        ).order_by('date')
+        queryset = self.queryset.filter(user=request.user.id_telegram)
         serializer = self.serializer_class(queryset, many=True)
         return Response(serializer.data)
 
@@ -114,19 +112,21 @@ class UsersViewSet(viewsets.ModelViewSet):
         serializer = HolidaySerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(
+        detail=True,
+        methods=['get',],
+    )
+    def gifts(self, request, pk):
+        queryset = Gift.objects.filter(
+            user=get_object_or_404(User, id_telegram=pk)
+        ).order_by('id')
+        serializer = GiftSerializer(queryset, many=True)
+        return Response(serializer.data)
 
-class GiftsViewSet(viewsets.ModelViewSet):
-    queryset = Gift.objects.all()
+
+class GiftsViewSet(HolidaysViewSet):
+    queryset = Gift.objects.all().order_by('id')
     serializer_class = GiftSerializer
-    http_method_names = ['get', 'post', 'delete', 'patch']
-
-    def get_permissions(self):
-        if (
-            self.request.method == 'DELETE'
-            or self.request.method == 'PATCH'
-        ):
-            return (OnlyAuthorOrAdmin(),)
-        return (IsAuthenticated(),)
 
     def create(self, request):
         request.data.update(
