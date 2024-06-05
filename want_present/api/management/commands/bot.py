@@ -6,7 +6,7 @@ from api.telegram_calendar import telegramcalendar
 from constants import TELEGRAM_TEXT
 from dotenv import load_dotenv
 from holidays.models import Holiday
-from telegram import Bot, ParseMode
+from telegram import Bot, ParseMode, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -82,7 +82,46 @@ def say_hi(update, context):
                     update.message.forward_from.first_name,
                 )
             else:
+                user = Profile.objects.get(
+                    id_telegram=update.message.forward_from.id
+                )
                 text = 'Надо прочитать список желаний пользователя'
+                response = requests.get(
+                    ('http://127.0.0.1:8000/api/users/'
+                     f'{user.id_telegram}/gifts/'),
+                    headers={
+                        'Authorization': (
+                            'Token {0}'.format(os.getenv('SUPERBOT_TOKEN'))
+                        )},
+                ).json()
+                # name_button = [[gift['short_name']] for gift in response]
+                # button = ReplyKeyboardMarkup(name_button, resize_keyboard=True)
+                # context.bot.send_message(
+                #     chat_id=chat.id,
+                #     text='Вот что хочет {0}'.format(user.username),
+                #     reply_markup=button
+                #     )
+                event = Holiday.objects.get(id=response[0]['event'])
+                btn_my_site_1 = InlineKeyboardButton(
+                    text='{0} ({1} - {2})'.format(
+                        response[0]['short_name'], event.name, event.date
+                    ),
+                    url=response[0]['hyperlink']
+                )
+                btn_my_site_2 = InlineKeyboardButton(
+                    text=response[1]['short_name'],
+                    url=response[1]['hyperlink']
+                )
+                context.bot.send_message(
+                    chat.id,
+                    "Что желает принять в дар {}:".format(user.username),
+                    reply_markup=InlineKeyboardMarkup(
+                        inline_keyboard=[
+                            [btn_my_site_1],
+                            [btn_my_site_2],
+                        ]
+                    )
+                )
     else:
         text = TELEGRAM_TEXT['UNKNOW']
 
@@ -161,12 +200,6 @@ def step2(update, context):
     context.user_data['user'] = Profile.objects.get(
         id_telegram=update.effective_chat.id,
     )
-
-    # serializers = HolidaySerializer(
-    #     data=context.user_data,
-    # )
-    # if serializers.is_valid():
-    #     serializers.save()
 
     Holiday.objects.create(
         user=context.user_data['user'],
