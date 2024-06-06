@@ -94,13 +94,6 @@ def say_hi(update, context):
                             'Token {0}'.format(os.getenv('SUPERBOT_TOKEN'))
                         )},
                 ).json()
-                # name_button = [[gift['short_name']] for gift in response]
-                # button = ReplyKeyboardMarkup(name_button, resize_keyboard=True)
-                # context.bot.send_message(
-                #     chat_id=chat.id,
-                #     text='Вот что хочет {0}'.format(user.username),
-                #     reply_markup=button
-                #     )
                 event = Holiday.objects.get(id=response[0]['event'])
                 btn_my_site_1 = InlineKeyboardButton(
                     text='{0} ({1} - {2})'.format(
