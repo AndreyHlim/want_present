@@ -6,7 +6,7 @@ from api.telegram_calendar import telegramcalendar
 from constants import TELEGRAM_TEXT
 from dotenv import load_dotenv
 from holidays.models import Holiday
-from telegram import Bot, ParseMode, ReplyKeyboardMarkup, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -70,53 +70,52 @@ def say_hi(update, context):
         user.set_password(os.getenv('USER_PASSWORD'))
         user.save()
 
-    if update.message.forward_from:
-        if update.message.forward_from.is_bot:
-            text = TELEGRAM_TEXT['ID_BOT']
-        else:
-            user = Profile.objects.filter(
-                id_telegram=update.message.forward_from.id,
-            )
-            if not user.exists():
-                text = TELEGRAM_TEXT['ID_NOT'].format(
-                    update.message.forward_from.first_name,
-                )
-            else:
-                user = Profile.objects.get(
-                    id_telegram=update.message.forward_from.id
-                )
-                text = 'Надо прочитать список желаний пользователя'
-                response = requests.get(
-                    ('http://127.0.0.1:8000/api/users/'
-                     f'{user.id_telegram}/gifts/'),
-                    headers={
-                        'Authorization': (
-                            'Token {0}'.format(os.getenv('SUPERBOT_TOKEN'))
-                        )},
-                ).json()
-                event = Holiday.objects.get(id=response[0]['event'])
-                btn_my_site_1 = InlineKeyboardButton(
-                    text='{0} ({1} - {2})'.format(
-                        response[0]['short_name'], event.name, event.date
-                    ),
-                    url=response[0]['hyperlink']
-                )
-                btn_my_site_2 = InlineKeyboardButton(
-                    text=response[1]['short_name'],
-                    url=response[1]['hyperlink']
-                )
-                context.bot.send_message(
-                    chat.id,
-                    "Что желает принять в дар {}:".format(user.username),
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [btn_my_site_1],
-                            [btn_my_site_2],
-                        ]
-                    )
-                )
+    if not update.message.forward_from:
+        return
+
+    if update.message.forward_from.is_bot:
+        text = TELEGRAM_TEXT['ID_BOT']
+        context.bot.send_message(
+            chat_id=chat.id,
+            text=text,
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        return
+
+    user = Profile.objects.filter(id_telegram=update.message.forward_from.id)
+    if not user.exists():
+        text = TELEGRAM_TEXT['ID_NOT'].format(
+            update.message.forward_from.first_name,
+        )
     else:
-        text = TELEGRAM_TEXT['UNKNOW']
+        user = Profile.objects.get(id_telegram=update.message.forward_from.id)
+        text = 'Попробуйте что-нибудь подобрать'
+        response = requests.get(
+            url=f'http://127.0.0.1:8000/api/users/{user.id_telegram}/gifts/',
+            headers={
+                'Authorization': 'Token {}'.format(os.getenv('SUPERBOT_TOKEN'))
+            },
+        ).json()
+        if len(response) == 0:
+            text = 'Пользователь пока не решил, что хочет'
+        else:
+            btn_gift = [
+                [
+                    InlineKeyboardButton(
+                        text='{0} ({1} - {2})'.format(
+                            response[i]['short_name'],
+                            Holiday.objects.get(id=response[i]['event']).name,
+                            Holiday.objects.get(id=response[i]['event']).date,
+                        ),
+                        url=response[i]['hyperlink'],
+                    )
+                ] for i in range(len(response))
+            ]
+            context.bot.send_message(
+                chat.id,
+                "Что желает принять в дар {}:".format(user.username),
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=btn_gift)
+            )
 
     context.bot.send_message(
         chat_id=chat.id,
