@@ -102,10 +102,11 @@ def say_hi(update, context):
             btn_gift = [
                 [
                     InlineKeyboardButton(
-                        text='{0} ({1} - {2})'.format(
+                        text='{0} ({1} - {2}. Комментарий: {3})'.format(
                             response[i]['short_name'],
                             Holiday.objects.get(id=response[i]['event']).name,
                             Holiday.objects.get(id=response[i]['event']).date,
+                            response[i]['comment'],
                         ),
                         url=response[i]['hyperlink'],
                     )
