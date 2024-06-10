@@ -7,31 +7,6 @@ from rest_framework import serializers
 from users.models import Subscribe
 
 
-class HolidaySerializer(serializers.ModelSerializer):
-    """
-    Сериализатор модели 'Праздники'.
-    Используется для отображения списка праздников.
-    """
-
-    class Meta:
-        model = Holiday
-        fields = ('id', 'name', 'date', 'user')
-
-    def validate_date(self, value):
-        if value < datetime.now().date():
-            raise serializers.ValidationError(
-                'Нельзя создавать ближайшую дату празднования в прошлом.'
-            )
-        elif value >= datetime.now().date().replace(
-            year=datetime.now().date().year+CONSTANTS['LIFE_SPAN']
-        ):
-            raise serializers.ValidationError(
-                'Нельзя создавать дату празднования в будущем '
-                'более чем на {0} лет.'.format(CONSTANTS['LIFE_SPAN'])
-            )
-        return value
-
-
 class UserSerializer(serializers.ModelSerializer):
     """
     Сериализатор модели 'Пользователи'.
@@ -59,8 +34,6 @@ class GiftSerializer(serializers.ModelSerializer):
     Сериализатор модели 'Подарки'.
     Используется для отображения желаемых подарков пользователей.
     """
-    # user = UserSerializer()
-    # event = HolidaySerializer()
 
     class Meta:
         model = Gift
@@ -74,5 +47,32 @@ class GiftSerializer(serializers.ModelSerializer):
         if holiday.user.id_telegram != self.initial_data['user']:
             raise serializers.ValidationError(
                 'Нельзя создать желаемый подарок другому пользователю'
+            )
+        return value
+
+
+class HolidaySerializer(serializers.ModelSerializer):
+    """
+    Сериализатор модели 'Праздники'.
+    Используется для отображения списка праздников.
+    """
+    gifts = GiftSerializer(read_only=True, many=True)
+    # user = UserSerializer()
+
+    class Meta:
+        model = Holiday
+        fields = ('id', 'name', 'date', 'user', 'gifts')
+
+    def validate_date(self, value):
+        if value < datetime.now().date():
+            raise serializers.ValidationError(
+                'Нельзя создавать ближайшую дату празднования в прошлом.'
+            )
+        elif value >= datetime.now().date().replace(
+            year=datetime.now().date().year+CONSTANTS['LIFE_SPAN']
+        ):
+            raise serializers.ValidationError(
+                'Нельзя создавать дату празднования в будущем '
+                'более чем на {0} лет.'.format(CONSTANTS['LIFE_SPAN'])
             )
         return value

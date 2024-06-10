@@ -27,6 +27,7 @@ class Gift(models.Model):
         Holiday,
         on_delete=models.CASCADE,
         verbose_name='Что празднует',
+        related_name='gifts',
     )
     comment = models.CharField(
         'Комментарий, желающего',
