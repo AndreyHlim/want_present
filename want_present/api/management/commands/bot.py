@@ -1,12 +1,13 @@
 import logging
 import os
+from datetime import datetime as dt
 
 import requests
 from api.telegram_calendar import telegramcalendar
 from constants import TELEGRAM_TEXT
 from dotenv import load_dotenv
 from holidays.models import Holiday
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup, ParseMode
+from telegram import Bot, ParseMode
 from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
@@ -102,42 +103,9 @@ def say_hi(update, context):
         if len(response) == 0:
             text = 'Пользователь пока не сохранил свои праздники'
         else:
-            # btn_gift = [
-            #     [
-            #         InlineKeyboardButton(
-            #             text='{0}'.format(
-            #                 response[0]['gifts'][i]['short_name']
-            #                 # Holiday.objects.get(id=response[i]['event']).name,
-            #                 # Holiday.objects.get(id=response[i]['event']).date,
-            #                 # response[i]['comment'],
-            #             ),
-            #             url=response[0]['gifts'][i]['hyperlink'],
-            #         )
-            #     ] for i in range(len(response[0]['gifts']))
-            # ]
             context.bot.send_message(
                 chat_id=chat.id,
-                text=(
-                    'Дата празднования: {0}\n'
-                    'Событие: {1}\n'
-                    'Пользователь {2} хочет принять в дар:\n'
-                    '{3}'
-                ).format(
-                    response[0]['date'],
-                    response[0]['name'],
-                    user.username,
-                    '{0}'.format(
-                        ' '.join(
-                            (
-                                f'\n    {i+1}) <a href="'
-                                f'{response[0]["gifts"][i]["hyperlink"]}">'
-                                f'{response[0]["gifts"][i]["short_name"]}'
-                                '</a>\n    Комментарий: '
-                                f'{response[0]["gifts"][i]["comment"]}\n'
-                            ) for i in range(len(response[0]['gifts']))
-                        )
-                    )
-                ),
+                text=holiday_card(response, user),
                 parse_mode=ParseMode.HTML,
                 disable_web_page_preview=True
             )
@@ -272,3 +240,34 @@ class Command(BaseCommand):
 
         updater.start_polling(1)
         updater.idle()
+
+
+def holiday_card(response, user) -> str:
+    return '\n'.join((
+        '___________________________________________\n'
+        'Дата празднования: {0}\n'
+        'Событие: {1}\n'
+        'Пользователь {2} хочет принять в дар:\n'
+        '{3}'
+    ).format(
+        dt.strptime(holiday['date'], '%Y-%m-%d').strftime('%d.%m.%Y'),
+        holiday['name'],
+        user.username,
+        '{0}'.format(
+            ' '.join(
+                (
+                    f'\n    {1+holiday["gifts"].index(gift)}) <a href="'
+                    f'{gift["hyperlink"]}">{gift["short_name"]}</a>\n'
+                    f'    Комментарий: {gift["comment"]}\n'
+                ) for gift in holiday['gifts']
+            )
+        )
+    ) if holiday['gifts'] else (
+        '___________________________________________\n'
+        'На событие {0} (празднуемое {1}) '
+        'пользователь {2} пока ничего не захотел.'
+    ).format(
+        holiday["name"],
+        dt.strptime(holiday["date"], '%Y-%m-%d').strftime('%d.%m.%Y'),
+        user.username,
+    ) for holiday in response)
