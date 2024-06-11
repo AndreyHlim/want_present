@@ -91,31 +91,55 @@ def say_hi(update, context):
         user = Profile.objects.get(id_telegram=update.message.forward_from.id)
         text = 'Попробуйте что-нибудь подобрать'
         response = requests.get(
-            url=f'http://127.0.0.1:8000/api/users/{user.id_telegram}/gifts/',
+            url=(
+                'http://127.0.0.1:8000/api/users/'
+                f'{user.id_telegram}/holidays/'
+            ),
             headers={
                 'Authorization': 'Token {}'.format(os.getenv('SUPERBOT_TOKEN'))
             },
         ).json()
         if len(response) == 0:
-            text = 'Пользователь пока не решил, что хочет'
+            text = 'Пользователь пока не сохранил свои праздники'
         else:
-            btn_gift = [
-                [
-                    InlineKeyboardButton(
-                        text='{0} ({1} - {2}. Комментарий: {3})'.format(
-                            response[i]['short_name'],
-                            Holiday.objects.get(id=response[i]['event']).name,
-                            Holiday.objects.get(id=response[i]['event']).date,
-                            response[i]['comment'],
-                        ),
-                        url=response[i]['hyperlink'],
-                    )
-                ] for i in range(len(response))
-            ]
+            # btn_gift = [
+            #     [
+            #         InlineKeyboardButton(
+            #             text='{0}'.format(
+            #                 response[0]['gifts'][i]['short_name']
+            #                 # Holiday.objects.get(id=response[i]['event']).name,
+            #                 # Holiday.objects.get(id=response[i]['event']).date,
+            #                 # response[i]['comment'],
+            #             ),
+            #             url=response[0]['gifts'][i]['hyperlink'],
+            #         )
+            #     ] for i in range(len(response[0]['gifts']))
+            # ]
             context.bot.send_message(
-                chat.id,
-                "Что желает принять в дар {}:".format(user.username),
-                reply_markup=InlineKeyboardMarkup(inline_keyboard=btn_gift)
+                chat_id=chat.id,
+                text=(
+                    'Дата празднования: {0}\n'
+                    'Событие: {1}\n'
+                    'Пользователь {2} хочет принять в дар:\n'
+                    '{3}'
+                ).format(
+                    response[0]['date'],
+                    response[0]['name'],
+                    user.username,
+                    '{0}'.format(
+                        ' '.join(
+                            (
+                                f'\n    {i+1}) <a href="'
+                                f'{response[0]["gifts"][i]["hyperlink"]}">'
+                                f'{response[0]["gifts"][i]["short_name"]}'
+                                '</a>\n    Комментарий: '
+                                f'{response[0]["gifts"][i]["comment"]}\n'
+                            ) for i in range(len(response[0]['gifts']))
+                        )
+                    )
+                ),
+                parse_mode=ParseMode.HTML,
+                disable_web_page_preview=True
             )
 
     context.bot.send_message(
