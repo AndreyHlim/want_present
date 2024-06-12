@@ -71,8 +71,9 @@ def say_hi(update, context):
         user.set_password(os.getenv('USER_PASSWORD'))
         user.save()
 
-    if not update.message.forward_from:
-        return
+
+def forward(update, context):
+    chat = update.effective_chat
 
     if update.message.forward_from.is_bot:
         text = TELEGRAM_TEXT['ID_BOT']
@@ -105,9 +106,9 @@ def say_hi(update, context):
         else:
             context.bot.send_message(
                 chat_id=chat.id,
-                text=holiday_card(response, user),
+                text=holiday_card(response, user.username),
                 parse_mode=ParseMode.HTML,
-                disable_web_page_preview=True
+                disable_web_page_preview=True,
             )
 
     context.bot.send_message(
@@ -236,6 +237,9 @@ class Command(BaseCommand):
         updater.dispatcher.add_handler(CommandHandler('help', help_bot))
         updater.dispatcher.add_handler(conv_handler)
         updater.dispatcher.add_handler(CallbackQueryHandler(inline_handler))
+        updater.dispatcher.add_handler(
+            MessageHandler(Filters.forwarded, forward)
+        )
         updater.dispatcher.add_handler(MessageHandler(Filters.text, say_hi))
 
         updater.start_polling(1)
@@ -245,23 +249,24 @@ class Command(BaseCommand):
 def holiday_card(response, user) -> str:
     return '\n'.join((
         '___________________________________________\n'
-        'Дата празднования: {0}\n'
+        '{4} Дата празднования: {0}\n'
         'Событие: {1}\n'
         'Пользователь {2} хочет принять в дар:\n'
         '{3}'
     ).format(
         dt.strptime(holiday['date'], '%Y-%m-%d').strftime('%d.%m.%Y'),
         holiday['name'],
-        user.username,
+        user,
         '{0}'.format(
             ' '.join(
                 (
-                    f'\n    {1+holiday["gifts"].index(gift)}) <a href="'
-                    f'{gift["hyperlink"]}">{gift["short_name"]}</a>\n'
+                    f'\n    {1+holiday["gifts"].index(gift)}) '
+                    f'<a href="{gift["hyperlink"]}">{gift["short_name"]}</a>\n'
                     f'    Комментарий: {gift["comment"]}\n'
                 ) for gift in holiday['gifts']
             )
-        )
+        ),
+        TELEGRAM_TEXT[1+response.index(holiday)],
     ) if holiday['gifts'] else (
         '___________________________________________\n'
         'На событие {0} (празднуемое {1}) '
@@ -269,5 +274,5 @@ def holiday_card(response, user) -> str:
     ).format(
         holiday["name"],
         dt.strptime(holiday["date"], '%Y-%m-%d').strftime('%d.%m.%Y'),
-        user.username,
+        user,
     ) for holiday in response)
