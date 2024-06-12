@@ -54,4 +54,16 @@ TELEGRAM_TEXT = {
 
     # Отмена сохранения информации о празднике
     'END_DAY': 'Ну ладно, может сохраним дату позже.',
+
+    # Для красивого перечня списка праздников в чате
+    1: b'\x31\xE2\x83\xA3'.decode('utf-8'),
+    2: b'\x32\xE2\x83\xA3'.decode('utf-8'),
+    3: b'\x33\xE2\x83\xA3'.decode('utf-8'),
+    4: b'\x34\xE2\x83\xA3'.decode('utf-8'),
+    5: b'\x35\xE2\x83\xA3'.decode('utf-8'),
+    6: b'\x36\xE2\x83\xA3'.decode('utf-8'),
+    7: b'\x37\xE2\x83\xA3'.decode('utf-8'),
+    8: b'\x38\xE2\x83\xA3'.decode('utf-8'),
+    9: b'\x39\xE2\x83\xA3'.decode('utf-8'),
+    10: b'\xF0\x9F\x94\x9F'.decode('utf-8'),
 }
