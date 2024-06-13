@@ -1,14 +1,17 @@
 anyio==4.3.0
 APScheduler==3.6.3
 asgiref==3.8.1
+atomicwrites==1.4.1
 attrs==23.2.0
 cachetools==4.2.2
 certifi==2024.2.2
 cffi==1.16.0
 charset-normalizer==3.3.2
+colorama==0.4.6
 cryptography==42.0.7
 defusedxml==0.8.0rc2
 Django==3.2.16
+django-filter==23.1
 django-templated-mail==1.1.1
 djangorestframework==3.15.1
 djangorestframework-simplejwt==5.3.1
@@ -48,5 +51,6 @@ sqlparse==0.5.0
 tomli==2.0.1
 tornado==6.4
 typing_extensions==4.11.0
+tzdata==2024.1
 tzlocal==5.2
 urllib3==2.2.1

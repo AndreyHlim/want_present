@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'rest_framework.authtoken',
     'djoser',
+    'django_filters',
     'holidays.apps.HolidaysConfig',
     'gifts.apps.GiftsConfig',
     'api.apps.ApiConfig',
