@@ -177,11 +177,6 @@ def step2(update, context):
             context.user_data['name'], context.user_data['date']
         ),
     )
-    # update.message.reply_text(
-    #     reply_markup=ReplyKeyboardMarkup(
-    #         [['Всё верно', 'Нет, исправлю']], one_time_keyboard=True
-    #     )
-    # )
 
     context.user_data['user'] = Profile.objects.get(
         id_telegram=update.effective_chat.id,
